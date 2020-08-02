@@ -1,0 +1,110 @@
+<script src="../jstinytest-master/tinytest.js"></script>
+
+<script>
+
+/*
+	 * Implementation of toFixed() that treats floats more like decimals
+	 *
+	 * Fixes binary rounding issues (eg. (0.615).toFixed(2) === "0.61") that present
+	 * problems for accounting- and finance-related software.
+*/
+
+  // function betterToFixed(value, precision) {
+	// 	// 1.005e2
+	// 	var exponentialForm = Number(value + 'e' + precision);
+	// 	var rounded = Math.round(exponentialForm);
+	// 	var finalResult = Number(rounded + 'e-' + precision);
+	// 	return finalResult.toFixed(precision);
+  // }
+
+var toFixed = toFixed = function(value, precision) {
+  var stringValue = value.toString();
+  var stringArray = stringValue.split('');
+  var finalValue;
+  var maxPrecision;
+  var power = Math.pow(10, precision);
+
+  if (arguments.length !== 2) {
+      throw new TypeError('Usage: toFixed(value, precision)');
+    }
+
+  for (let i = 0; i < stringArray.length; i++) {
+    // Detect a decimal and shift it by the precision specified
+    if (stringValue[i] === '.' ) {
+      stringArray.splice(i, 1)
+      stringArray.splice(i + precision, 0, '.');
+
+      // Calculate maximum precision that the user can specify
+      maxPrecision = stringArray.length - 1 - i;
+
+      // Throw error if precision specified > the number of decimal digits in value
+      if (precision > maxPrecision) {
+        throw new TypeError("Precision must be <= the number of decimals.")
+      }
+
+      // Create new string with the amended precision
+      var finalValue = Number(stringArray.join(''));
+      break;
+    }
+  }
+
+  // If finalValue has no decimals, invoke native toFixed function
+  if (!finalValue) {
+    finalValue = value.toFixed(precision);
+  
+  } else {
+    finalValue = Math.round(finalValue) / power;
+    finalValue = finalValue.toString();
+  }
+  
+  return finalValue;
+};
+
+tests ({
+  'It should return a string.': function() {
+    // debugger;
+    var testResult = toFixed(1.005, 2);
+    eq(typeof testResult, 'string');;
+  },
+
+  'It should accept a precision argument, and round value to the specified number of decimal places.': function() {
+    var testResult = toFixed(1.005, 2);
+    eq(testResult, "1.01");;
+  },
+
+  'It should round up to the nearest toFixed precision, if the last digit ends in five.': function() {
+    // debugger;
+    var testResult = toFixed(0.615, 2);
+    var secondTestResult = toFixed(10.235, 2)
+    eq(testResult, "0.62");
+    eq(secondTestResult, "10.24");
+  },
+
+  'It should throw a TypeError if arguments.length !== 2.': function() {
+    let isTypeError = false;
+    try {
+      toFixed(1.005, 2, 1);
+    } catch (e) {
+      isTypeError = (e instanceof TypeError);
+    }
+    eq(isTypeError, true);
+  },
+
+  'It should throw a TypeError if precision > digits to the right of value (except for whole numbers).': function() {
+    let isTypeError = false;
+    try {
+      toFixed(1.005, 4);
+    } catch(e) {
+      isTypeError = (e instanceof TypeError);
+    }
+    eq(isTypeError, true);
+  },
+
+  'It should be capable of accepting whole numbers without any decimals.': function() {
+    // debugger;
+    var testResult = toFixed(100, 1);
+    eq(testResult, "100.0");
+  }
+});
+
+</script>
